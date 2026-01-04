@@ -1,189 +1,181 @@
-Express–Flask Microservice Application (AWS Deployment Guide)
+# Express–Flask Microservice Application  
+## AWS Deployment Guide
 
-This README documents how the Express–Flask Microservice Application was deployed on Amazon Web Services (AWS) using three different approaches:
+This project demonstrates how a simple **microservice-based web application** can be deployed on **Amazon Web Services (AWS)** using multiple infrastructure approaches.
 
-Single EC2 instance deployment
+The application consists of an **Express (Node.js) frontend** acting as a Backend-for-Frontend (BFF) and a **Flask (Python) backend** serving data from a JSON file.
 
-Separate EC2 instances deployment
+Three AWS deployment strategies are implemented:
 
-Dockerized deployment using AWS ECR, ECS, and VPC
+1. Deployment on a **single EC2 instance**
+2. Deployment on **separate EC2 instances**
+3. **Containerized deployment using Docker, AWS ECR, ECS (Fargate), and VPC**
 
-This document focuses entirely on AWS-based deployment, architecture, and learning outcomes.
+---
 
-Application Overview
+## Application Architecture
 
-The application follows a simple microservice architecture:
+Browser (HTML + JavaScript)
+↓
+Express (Node.js – BFF Layer)
+↓
+Flask (Python REST API)
+↓
+JSON File (details.json)
 
-Browser (HTML + JavaScript) → Express (Node.js – BFF layer) → Flask (Python API) → JSON File
 
-Functional Flow
 
-Flask reads details.json containing multiple people records (name, age).
+---
 
-Flask exposes a REST API endpoint: /people.
+## Application Overview
 
-Express acts as a Backend-for-Frontend (BFF) and fetches data from Flask.
+- Flask reads `details.json` containing multiple people records (name, age).
+- Flask exposes a REST API endpoint: `/people`.
+- Express fetches data from Flask and exposes it to the frontend.
+- The frontend dynamically renders the data in the browser using JavaScript.
 
-The frontend displays the data dynamically in the browser.
+---
 
-AWS Deployment 1: Single EC2 Instance
+## AWS Deployment 1: Single EC2 Instance
 
-Architecture
+### Architecture
 
 Browser → EC2 Instance → Express → Flask → JSON File
 
-Both Express and Flask run on the same EC2 instance.
 
-Steps Performed
 
-EC2 Setup
+Both Express and Flask run on the **same EC2 instance**.
 
-Launched an EC2 instance (Amazon Linux 2 / Ubuntu).
+### Steps Performed
 
-Configured Security Group:
+1. **EC2 Setup**
+   - Launched an EC2 instance (Amazon Linux 2 / Ubuntu).
+   - Configured Security Group rules:
+     - Port 22 – SSH
+     - Port 3000 – Express frontend
+     - Port 8000 – Flask backend (optional public access)
 
-Port 22 (SSH)
+2. **Environment Setup**
+   - Installed:
+     - Node.js and npm
+     - Python 3 and pip
+     - Git
 
-Port 3000 (Express frontend)
+3. **Application Setup**
+   - Cloned the project repository from GitHub.
+   - Installed dependencies:
+     - `npm install` for Express
+     - `pip install -r requirements.txt` for Flask
 
-Port 8000 (Flask backend – optional internal access)
+4. **Service Execution**
+   - Flask started on `0.0.0.0:8000`
+   - Express started on `0.0.0.0:3000`
+   - Express communicates with Flask using:
+     ```
+     http://localhost:8000
+     ```
 
-Environment Setup
-
-Installed required packages:
-
-Node.js & npm
-
-Python 3 & pip
-
-Git
-
-Application Setup
-
-Cloned the project repository from GitHub.
-
-Installed dependencies:
-
-npm install for Express
-
-pip install -r requirements.txt for Flask
-
-Service Execution
-
-Flask started on 0.0.0.0:5000.
-
-Express started on 0.0.0.0:3000.
-
-Express communicated with Flask using http://localhost:8000.
-
-Access
-
-Application accessed via:
-
+5. **Access**
 http://<EC2-PUBLIC-IP>:3000
 
-Key Notes
+### Notes
 
-Suitable for development and testing.
+- Simple and fast to deploy.
+- Suitable for learning and development.
+- Not recommended for production due to a single point of failure.
 
-Not ideal for production due to single point of failure.
+---
 
-AWS Deployment 2: Separate EC2 Instances
+## AWS Deployment 2: Separate EC2 Instances
 
-Architecture
+### Architecture
 
 Browser → Express EC2 → Flask EC2 → JSON File
 
-Express and Flask run on different EC2 instances.
 
-Steps Performed
 
-EC2 Instances
+Express and Flask run on **separate EC2 instances**.
 
-Launched two EC2 instances:
+### Steps Performed
 
-EC2 #1: Express (Node.js)
+1. **EC2 Instances**
+   - EC2 #1: Express (Node.js)
+   - EC2 #2: Flask (Python)
 
-EC2 #2: Flask (Python)
+2. **Security Group Configuration**
+   - Express EC2:
+     - Port 3000 (public)
+   - Flask EC2:
+     - Port 8000 (allowed only from Express EC2 security group)
 
-Security Group Configuration
+3. **Flask Backend (EC2)**
+   - Installed Python and dependencies.
+   - Flask bound to `0.0.0.0:8000`
+   - Exposed `/people` endpoint.
 
-Express EC2:
+4. **Express Frontend (EC2)**
+   - Installed Node.js and dependencies.
+   - Updated Express configuration to call Flask using the **private IP**:
+     ```
+     http://<FLASK-PRIVATE-IP>:8000
+     ```
 
-Port 3000 (Public)
-
-Flask EC2:
-
-Port 8000 (Allowed only from Express EC2 security group)
-
-Backend (Flask EC2)
-
-Installed Python and dependencies.
-
-Flask bound to 0.0.0.0:8000.
-
-Served /people API endpoint.
-
-Frontend (Express EC2)
-
-Installed Node.js and dependencies.
-
-Updated Express configuration to call Flask using private EC2 IP:
-
-http://<FLASK-PRIVATE-IP>:8000
-
-Access
-
-Application accessed via Express EC2 public IP:
-
+5. **Access**
 http://<EXPRESS-PUBLIC-IP>:3000
 
-Key Notes
 
-Improved service isolation.
 
-Easier to scale services independently.
+### Notes
 
-Better reflects real-world microservice architecture.
+- Better isolation between services.
+- More realistic microservice architecture.
+- Enables independent scaling and maintenance.
 
-AWS Deployment 3: Docker + ECR + ECS + VPC
+---
 
-Architecture
+## AWS Deployment 3: Docker + ECR + ECS + VPC
 
-Browser → Application Load Balancer → ECS (Express Container) → ECS (Flask Container)
+### Architecture
 
-Services run as Docker containers managed by Amazon ECS.
+Browser
+↓
+Application Load Balancer (ALB)
+↓
+ECS Service (Express Container)
+↓
+ECS Service (Flask Container)
 
-Step 1: Dockerization
 
-Created separate Dockerfiles for:
+All services run as **Docker containers** managed by **Amazon ECS (Fargate)**.
 
-Flask backend
+---
 
-Express frontend
+### Step 1: Dockerization
 
-Verified containers locally using Docker Compose.
+- Created separate Dockerfiles for:
+  - Flask backend
+  - Express frontend
+- Tested containers locally using Docker Compose.
 
-Step 2: Amazon ECR (Elastic Container Registry)
+---
 
-Created two ECR repositories:
+### Step 2: Amazon ECR (Elastic Container Registry)
 
-flask-backend
+- Created two ECR repositories:
+  - `flask-backend`
+  - `express-frontend`
 
-express-frontend
+- Built Docker images locally.
+- Tagged and pushed images to ECR:
 
-Built Docker images locally.
-
-Tagged and pushed images to ECR:
-
+`
 docker tag <image> <aws_account_id>.dkr.ecr.<region>.amazonaws.com/<repo>:latest
-docker push <repo-url>
+docker push <repo-url>`
 
-Step 3: VPC Setup
+Step 3: VPC Configuration
+Custom VPC with:
 
-Used a custom VPC with:
-
-Public subnets (ALB)
+Public subnets (Application Load Balancer)
 
 Private subnets (ECS tasks)
 
@@ -193,92 +185,42 @@ Internet Gateway
 
 Route Tables
 
+Security Groups
+
 Step 4: ECS Cluster & Task Definitions
+Created ECS Cluster using Fargate.
 
-Created ECS Cluster (Fargate).
+Defined task definitions:
 
-Defined Task Definitions:
+Flask container → Port 8000
 
-Flask Task:
+Express container → Port 3000
 
-Port 8000
+Configured environment variables so Express can reach Flask using:
 
-Express Task:
-
-Port 3000
-
-Environment Variables:
-
-Express service configured with Flask service URL using ECS service discovery or internal load balancer.
+ECS service discovery or internal DNS.
 
 Step 5: ECS Services & Load Balancer
+Created ECS services for Express and Flask.
 
-Created ECS Services for both containers.
+Attached Application Load Balancer (ALB) to the Express service.
 
-Attached Application Load Balancer (ALB) to Express service.
+ALB routes incoming HTTP traffic to Express containers.
 
-ALB routes traffic to Express container.
-
-Step 6: Service Communication
-
-Express communicates with Flask using:
-
-Internal DNS name
-
-Service discovery
-
-No public exposure of Flask service.
+Flask service is not publicly exposed.
 
 Access
-
-Application accessed via ALB DNS name:
-
 http://<ALB-DNS-NAME>
 
-Comparison of Deployment Approaches
+Deployment Comparison
 
-Feature
-
-Single EC2
-
-Separate EC2s
-
-ECS + ECR
-
-Scalability
-
-Low
-
-Medium
-
-High
-
-Fault Isolation
-
-Low
-
-Medium
-
-High
-
-DevOps Complexity
-
-Low
-
-Medium
-
-High
-
-Production Ready
-
-❌
-
-⚠️
-
-✅
+Feature	Single EC2	Separate EC2s	ECS + ECR
+Scalability	Low	Medium	High
+Fault Isolation	Low	Medium	High
+Operational Complexity	Low	Medium	High
+Production Ready	❌	⚠️	✅
 
 AWS Services Used
-
 Amazon EC2
 
 Amazon VPC
@@ -289,22 +231,20 @@ Amazon ECR
 
 Application Load Balancer (ALB)
 
-IAM (Roles & Policies)
+IAM (Roles and Policies)
 
 Key Learning Outcomes
-
-AWS EC2 based deployments
-
-Microservice separation strategies
+Microservice architecture on AWS
 
 Backend-for-Frontend (BFF) pattern
 
-Docker image lifecycle in AWS
+EC2-based vs container-based deployments
+
+Docker image lifecycle with ECR
 
 ECS task and service orchestration
 
-Secure service-to-service communication in VPC
+Secure service-to-service communication inside a VPC
 
 License
-
 This project is intended strictly for educational and learning purposes.
