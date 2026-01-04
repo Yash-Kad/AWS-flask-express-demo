@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  backend:
+    build: ./backend
+    hostname: backend-host
+    volumes:
+      - ./backend:/app
+    ports:
+      - "5000:5000"
+    networks:
+      - peoples-info
+
+  frontend:
+    build: ./frontend
+    hostname: frontend-host
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:3000"
+    links:
+      - backend 
+    depends_on:
+      - backend
+    networks:
+      - peoples-info
+networks:
+  peoples-info: {}

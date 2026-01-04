@@ -1,0 +1,30 @@
+<html>
+<head>
+    <title>People Information</title>
+</head>
+<body>
+
+<h2>People List</h2>
+<button onclick="loadData()">Load Data</button>
+
+<ul id="list"></ul>
+
+<script>
+function loadData() {
+    fetch("/get-data")
+        .then(response => response.json())
+        .then(data => {
+            const list = document.getElementById("list");
+            list.innerHTML = "";
+
+            data.forEach(person => {
+                const li = document.createElement("li");
+                li.textContent = `Name: ${person.name}, Age: ${person.age}`;
+                list.appendChild(li);
+            });
+        });
+}
+</script>
+
+</body>
+</html>
